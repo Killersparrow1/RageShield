@@ -65,6 +65,7 @@ private fun RageShieldHome(
 ) {
     var serviceEnabled by remember { mutableStateOf(isServiceEnabled(context)) }
     var platformStatus by remember { mutableStateOf(listOf<Pair<String, String>>()) }
+    var analysisText by remember { mutableStateOf("Nothing analysed yet. Open a supported app and scroll.") }
     var listStatus by remember { mutableStateOf("") }
     var listBusy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf("Test swipe has not been run") }
@@ -74,6 +75,12 @@ private fun RageShieldHome(
         serviceEnabled = isServiceEnabled(context)
         val prefs = context.getSharedPreferences("rageshield_status", Context.MODE_PRIVATE)
         val now = System.currentTimeMillis()
+        val analysis = prefs.getString(RageAccessibilityService.KEY_LAST_ANALYSIS, null)
+        val analysisAt = prefs.getLong(RageAccessibilityService.KEY_LAST_ANALYSIS_AT, 0L)
+        if (analysis != null) {
+            analysisText = analysis + "\n" +
+                DateFormat.getTimeInstance(DateFormat.MEDIUM).format(Date(analysisAt))
+        }
         platformStatus = PlatformRegistry.adapters.map { adapter ->
             val last = adapter.supportedPackageNames
                 .maxOfOrNull { prefs.getLong(RageAccessibilityService.statusKey(it), 0L) } ?: 0L
@@ -132,6 +139,16 @@ private fun RageShieldHome(
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Last analysis (what the app saw)")
+                Text(analysisText, style = MaterialTheme.typography.bodySmall)
+                OutlinedButton(onClick = { refreshStatus() }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Refresh")
+                }
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Filter list")
                 Text(listStatus, style = MaterialTheme.typography.bodySmall)
                 Text(
@@ -180,10 +197,10 @@ private fun RageShieldHome(
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Planned filter configuration")
+                Text("Filter configuration")
                 Text("Languages: Malayalam, English, Hindi, Tamil")
-                Text("Initial threshold: 90 / 100")
-                Text("Automatic filtering: OFF in Phase 1")
+                Text("Skip threshold: ${com.milas.rageshield.core.DecisionEngine.rageThreshold} / 100 (20 points per matching word)")
+                Text("Automatic filtering: " + if (com.milas.rageshield.core.DecisionEngine.isAutomaticSkipEnabled) "ON" else "OFF")
             }
         }
 

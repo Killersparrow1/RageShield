@@ -15,6 +15,7 @@ import java.lang.ref.WeakReference
 class RageAccessibilityService : AccessibilityService() {
 
     private var lastSwipeAt = 0L
+    private var lastProcessedAt = 0L
     private var lastFingerprint: String? = null
 
     override fun onServiceConnected() {
@@ -29,25 +30,47 @@ class RageAccessibilityService : AccessibilityService() {
 
         val adapter = PlatformRegistry.getAdapterForPackage(packageName) ?: return
 
+        // Content-changed events can fire many times per second; read the screen at most
+        // a few times a second.
+        val now = System.currentTimeMillis()
+        if (now - lastProcessedAt < PROCESS_THROTTLE_MS) return
+        lastProcessedAt = now
+
         getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
-            .putLong(statusKey(packageName), System.currentTimeMillis())
+            .putLong(statusKey(packageName), now)
             .apply()
 
-        // Scroll events often carry only a small container as their source, so prefer
-        // the whole active window and fall back to the event source.
-        val rootNode = rootInActiveWindow ?: event.source ?: return
-        val content = adapter.extractContent(rootNode) ?: return
+        // Prefer the whole active window; fall back to the event source.
+        val rootNode = rootInActiveWindow ?: event.source
+        if (rootNode == null) {
+            recordAnalysis(adapter.platformName, "Could not read the screen")
+            return
+        }
+        val content = adapter.extractContent(rootNode)
+        if (content == null) {
+            recordAnalysis(adapter.platformName, "No readable caption text on screen")
+            return
+        }
 
         // Ignore repeated events for content that was already analysed.
         val fingerprint = ContentIdentifier.generateTextFingerprint(content)
         if (fingerprint == lastFingerprint) return
         lastFingerprint = fingerprint
 
-        processContent(content)
+        processContent(adapter.platformName, content)
     }
 
-    private fun processContent(text: String) {
+    /** Stores a one-line summary of the latest analysis (never the post text itself). */
+    private fun recordAnalysis(platform: String, summary: String) {
+        getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_LAST_ANALYSIS, "$platform: $summary")
+            .putLong(KEY_LAST_ANALYSIS_AT, System.currentTimeMillis())
+            .apply()
+    }
+
+    private fun processContent(platform: String, text: String) {
         val localDetection = RageDetectionEngine.analyze(text)
 
         // TODO: Query community database for hash match (Phase 4)
@@ -59,14 +82,24 @@ class RageAccessibilityService : AccessibilityService() {
             localDetection.score
         )
 
+        var outcome = decision.name
         if (decision == DecisionEngine.Decision.SKIP) {
             // Cooldown so the swipe's own scroll events cannot chain into a skip loop.
             val now = System.currentTimeMillis()
             if (now - lastSwipeAt >= SWIPE_COOLDOWN_MS) {
                 lastSwipeAt = now
-                performTestSwipe()
+                outcome = if (performTestSwipe()) "SKIP, swiped" else "SKIP, swipe failed"
+            } else {
+                outcome = "SKIP, waiting (cooldown)"
             }
         }
+
+        val matchText = if (localDetection.matches.isEmpty()) "none"
+        else localDetection.matches.take(5).joinToString(", ")
+        recordAnalysis(
+            platform,
+            "${text.length} chars read, score ${localDetection.score}, matched: $matchText, result: $outcome"
+        )
     }
 
     override fun onInterrupt() = Unit
@@ -96,6 +129,9 @@ class RageAccessibilityService : AccessibilityService() {
     companion object {
         private const val PREFS = "rageshield_status"
         private const val SWIPE_COOLDOWN_MS = 1500L
+        private const val PROCESS_THROTTLE_MS = 700L
+        const val KEY_LAST_ANALYSIS = "last_analysis"
+        const val KEY_LAST_ANALYSIS_AT = "last_analysis_at"
 
         /** SharedPreferences key holding the last event time for a given app package. */
         fun statusKey(packageName: String) = "last_event_$packageName"

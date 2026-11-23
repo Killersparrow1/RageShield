@@ -7,7 +7,8 @@ package com.milas.rageshield.core
 object DecisionEngine {
     
     // User configurable threshold (could be moved to Settings/Preferences)
-    var rageThreshold = 90
+    // 20 points per matching word, so 40 means two different words skip a post.
+    var rageThreshold = 40
     var isAutomaticSkipEnabled = true
 
     enum class Decision {

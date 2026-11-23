@@ -50,26 +50,28 @@ object RageDetectionEngine {
         val score: Int,
         val detectedLanguage: String?,
         val confidence: Double,
-        val explanation: String
+        val explanation: String,
+        val matches: List<String> = emptyList()
     )
 
     fun analyze(content: String): DetectionResult {
         val lowered = content.lowercase()
         val language = Locale.getDefault().language
         
-        var matchCount = 0
+        val matched = ArrayList<String>()
         matchers().forEach { m ->
-            if (m.matches(lowered)) matchCount++
+            if (m.matches(lowered)) matched.add(m.keyword)
         }
 
         // Simple heuristic: scale match count to a score out of 100
-        val score = (matchCount * 20).coerceIn(0, 100)
+        val score = (matched.size * 20).coerceIn(0, 100)
         
         return DetectionResult(
             score = score,
             detectedLanguage = language,
             confidence = if (score > 50) 0.8 else 0.5,
-            explanation = if (score > 70) "High frequency of provocative patterns." else "Content appears neutral."
+            explanation = if (score > 70) "High frequency of provocative patterns." else "Content appears neutral.",
+            matches = matched
         )
     }
 }
