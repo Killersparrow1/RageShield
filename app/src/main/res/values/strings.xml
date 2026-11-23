@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">RageShield</string>
+    <string name="accessibility_service_description">Detects when Facebook is in the foreground and can perform a user-requested test swipe. Content filtering is not active in this test build.</string>
+</resources>
