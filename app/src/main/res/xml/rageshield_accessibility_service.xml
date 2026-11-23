@@ -4,6 +4,6 @@
     android:accessibilityEventTypes="typeWindowStateChanged|typeViewScrolled"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:notificationTimeout="250"
-    android:packageNames="com.facebook.katana,com.instagram.android"
+    android:packageNames="com.facebook.katana,com.facebook.lite,com.instagram.android,com.google.android.youtube,com.ss.android.ugc.trill,com.zhiliaoapp.musically,com.twitter.android,com.instagram.barcelona,com.reddit.frontpage,com.linkedin.android,com.snapchat.android,com.pinterest,xyz.blueskyweb.app,org.joinmastodon.android"
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true" />

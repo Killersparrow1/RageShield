@@ -25,19 +25,12 @@ class RageAccessibilityService : AccessibilityService() {
         event ?: return
         val packageName = event.packageName?.toString() ?: return
 
-        val statusKey = when (packageName) {
-            FACEBOOK_PACKAGE -> KEY_LAST_FACEBOOK_EVENT
-            INSTAGRAM_PACKAGE -> KEY_LAST_INSTAGRAM_EVENT
-            else -> null
-        }
-        if (statusKey != null) {
-            getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit()
-                .putLong(statusKey, System.currentTimeMillis())
-                .apply()
-        }
-
         val adapter = PlatformRegistry.getAdapterForPackage(packageName) ?: return
+
+        getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(statusKey(packageName), System.currentTimeMillis())
+            .apply()
 
         // Scroll events often carry only a small container as their source, so prefer
         // the whole active window and fall back to the event source.
@@ -100,11 +93,10 @@ class RageAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val PREFS = "rageshield_status"
-        private const val FACEBOOK_PACKAGE = "com.facebook.katana"
-        private const val INSTAGRAM_PACKAGE = "com.instagram.android"
         private const val SWIPE_COOLDOWN_MS = 1500L
-        const val KEY_LAST_FACEBOOK_EVENT = "last_facebook_event"
-        const val KEY_LAST_INSTAGRAM_EVENT = "last_instagram_event"
+
+        /** SharedPreferences key holding the last event time for a given app package. */
+        fun statusKey(packageName: String) = "last_event_$packageName"
 
         @Volatile
         private var instance: WeakReference<RageAccessibilityService>? = null

@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.milas.rageshield.accessibility.RageAccessibilityService
+import com.milas.rageshield.core.PlatformRegistry
 import java.text.DateFormat
 import java.util.Date
 
@@ -62,30 +63,23 @@ private fun RageShieldHome(
     onTestSwipe: () -> Boolean
 ) {
     var serviceEnabled by remember { mutableStateOf(isServiceEnabled(context)) }
-    var facebookSeen by remember { mutableStateOf(false) }
-    var lastSeenText by remember { mutableStateOf("No Facebook event detected yet") }
-    var instagramSeen by remember { mutableStateOf(false) }
-    var instagramSeenText by remember { mutableStateOf("No Instagram event detected yet") }
+    var platformStatus by remember { mutableStateOf(listOf<Pair<String, String>>()) }
     var result by remember { mutableStateOf("Test swipe has not been run") }
     var testModeAcknowledged by remember { mutableStateOf(false) }
 
     fun refreshStatus() {
         serviceEnabled = isServiceEnabled(context)
         val prefs = context.getSharedPreferences("rageshield_status", Context.MODE_PRIVATE)
-        val timestamp = prefs.getLong(RageAccessibilityService.KEY_LAST_FACEBOOK_EVENT, 0L)
-        facebookSeen = timestamp > 0L && System.currentTimeMillis() - timestamp < 15_000L
-        lastSeenText = if (timestamp > 0L) {
-            "Last Facebook event: " + DateFormat.getTimeInstance(DateFormat.MEDIUM).format(Date(timestamp))
-        } else {
-            "No Facebook event detected yet"
-        }
-
-        val igTimestamp = prefs.getLong(RageAccessibilityService.KEY_LAST_INSTAGRAM_EVENT, 0L)
-        instagramSeen = igTimestamp > 0L && System.currentTimeMillis() - igTimestamp < 15_000L
-        instagramSeenText = if (igTimestamp > 0L) {
-            "Last Instagram event: " + DateFormat.getTimeInstance(DateFormat.MEDIUM).format(Date(igTimestamp))
-        } else {
-            "No Instagram event detected yet"
+        val now = System.currentTimeMillis()
+        platformStatus = PlatformRegistry.adapters.map { adapter ->
+            val last = adapter.supportedPackageNames
+                .maxOfOrNull { prefs.getLong(RageAccessibilityService.statusKey(it), 0L) } ?: 0L
+            val text = when {
+                last <= 0L -> "No activity yet"
+                now - last < 15_000L -> "Active now"
+                else -> "Last seen " + DateFormat.getTimeInstance(DateFormat.MEDIUM).format(Date(last))
+            }
+            adapter.platformName to text
         }
     }
 
@@ -111,25 +105,21 @@ private fun RageShieldHome(
         }
 
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Facebook detection")
-                Text(if (facebookSeen) "Facebook activity detected recently" else "Waiting for Facebook activity")
-                Text(lastSeenText, style = MaterialTheme.typography.bodySmall)
-            }
-        }
-
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Instagram detection")
-                Text(if (instagramSeen) "Instagram activity detected recently" else "Waiting for Instagram activity")
-                Text(instagramSeenText, style = MaterialTheme.typography.bodySmall)
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Supported platforms")
+                platformStatus.forEach { (name, status) ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(name)
+                        Text(status, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
         }
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Swipe test (manual)")
-                Text("Open Facebook and navigate to a video/Reel. Then return here only if you can do so without losing the screen, or use the accessibility shortcut/test workflow during development.")
+                Text("Open a supported app and navigate to a video/Reel. Then return here only if you can do so without losing the screen, or use the accessibility shortcut/test workflow during development.")
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = testModeAcknowledged, onCheckedChange = { testModeAcknowledged = it })
                     Spacer(Modifier.height(1.dp))

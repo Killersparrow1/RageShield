@@ -18,6 +18,18 @@ RageShield is architected for modular support across all major social media plat
 - ✅ X / Twitter
 - ✅ Threads
 - ✅ Reddit
+- ✅ LinkedIn
+- ✅ Snapchat
+- ✅ Pinterest
+- ✅ Bluesky
+- ✅ Mastodon
+
+Messaging apps (WhatsApp, Telegram DMs, etc.) are intentionally not supported, since reading private conversations is outside RageShield's purpose.
+
+### Adding a platform
+1. Subclass `FeedAdapter` in `app/.../adapters/` with the app's display name and package name(s).
+2. Register it in `PlatformRegistry`.
+3. Add the package to `android:packageNames` in `res/xml/rageshield_accessibility_service.xml`.
 
 ## Architecture
 RageShield consists of two primary components:

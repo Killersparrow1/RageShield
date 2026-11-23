@@ -53,4 +53,14 @@ object AccessibilityUtils {
         walk(root)
         return out
     }
+
+    /**
+     * Joins visible text that looks like a caption or post body: multi-word and not a
+     * tiny UI label such as "Like" or "Share". Returns null when nothing qualifies.
+     */
+    fun captionLikeText(root: AccessibilityNodeInfo?, maxChars: Int = 2000): String? {
+        val parts = collectText(root).filter { it.length >= 12 && it.contains(' ') }
+        if (parts.isEmpty()) return null
+        return parts.joinToString(" ").take(maxChars)
+    }
 }
