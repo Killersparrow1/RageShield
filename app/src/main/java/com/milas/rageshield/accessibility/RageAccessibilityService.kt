@@ -7,6 +7,7 @@ import android.graphics.Path
 import android.view.accessibility.AccessibilityEvent
 import com.milas.rageshield.core.ContentIdentifier
 import com.milas.rageshield.core.DecisionEngine
+import com.milas.rageshield.core.FilterListRepository
 import com.milas.rageshield.core.PlatformRegistry
 import com.milas.rageshield.core.RageDetectionEngine
 import java.lang.ref.WeakReference
@@ -19,6 +20,7 @@ class RageAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = WeakReference(this)
+        FilterListRepository.init(this)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {

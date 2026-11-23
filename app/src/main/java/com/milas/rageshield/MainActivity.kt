@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.milas.rageshield.accessibility.RageAccessibilityService
+import com.milas.rageshield.core.FilterListRepository
 import com.milas.rageshield.core.PlatformRegistry
 import java.text.DateFormat
 import java.util.Date
@@ -64,6 +65,8 @@ private fun RageShieldHome(
 ) {
     var serviceEnabled by remember { mutableStateOf(isServiceEnabled(context)) }
     var platformStatus by remember { mutableStateOf(listOf<Pair<String, String>>()) }
+    var listStatus by remember { mutableStateOf("") }
+    var listBusy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf("Test swipe has not been run") }
     var testModeAcknowledged by remember { mutableStateOf(false) }
 
@@ -83,7 +86,18 @@ private fun RageShieldHome(
         }
     }
 
-    LaunchedEffect(Unit) { refreshStatus() }
+    fun refreshListStatus(error: String? = null) {
+        val t = FilterListRepository.lastUpdated(context)
+        val updated = if (t > 0L) "Updated " + DateFormat.getDateTimeInstance().format(Date(t)) else "Not downloaded yet"
+        listStatus = "${FilterListRepository.keywords.size} words total, ${FilterListRepository.communityCount} from community. $updated" +
+            (if (error != null) "\nUpdate failed: $error" else "")
+    }
+
+    LaunchedEffect(Unit) {
+        FilterListRepository.init(context)
+        refreshStatus()
+        refreshListStatus()
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -113,6 +127,30 @@ private fun RageShieldHome(
                         Text(status, style = MaterialTheme.typography.bodySmall)
                     }
                 }
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Community filter list")
+                Text(listStatus, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "Add your own words by editing keywords.txt in the RageShield-FilterList repository on GitHub.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedButton(
+                    enabled = !listBusy,
+                    onClick = {
+                        listBusy = true
+                        FilterListRepository.refresh(context) { error ->
+                            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                                listBusy = false
+                                refreshListStatus(error)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (listBusy) "Updating..." else "Update filter list") }
             }
         }
 
@@ -150,7 +188,7 @@ private fun RageShieldHome(
         }
 
         Text(
-            "Privacy: this test build records only the latest Facebook accessibility-event time. It does not capture screenshots, read captions, record audio or classify content.",
+            "Privacy: post text is analysed on your phone and never uploaded. The app only downloads the public filter list.",
             style = MaterialTheme.typography.bodySmall
         )
     }

@@ -10,10 +10,10 @@ import java.util.Locale
  */
 object RageDetectionEngine {
 
-    // Keywords or patterns that often indicate rage-farming, to be expanded.
-    private val RAGE_KEYWORDS = setOf(
+    /** Built-in fallback words, used until (and alongside) the community list. */
+    val BUILT_IN_KEYWORDS: Set<String> = setOf(
         "hate", "exposed", "destroy", "scandal", "shocking", "urgent", "must watch",
-        "exposed", "breaking", "triggered"
+        "breaking", "triggered"
     )
 
     data class DetectionResult(
@@ -28,7 +28,7 @@ object RageDetectionEngine {
         val language = Locale.getDefault().language
         
         var matchCount = 0
-        RAGE_KEYWORDS.forEach { keyword ->
+        FilterListRepository.keywords.forEach { keyword ->
             if (lowered.contains(keyword)) matchCount++
         }
 
