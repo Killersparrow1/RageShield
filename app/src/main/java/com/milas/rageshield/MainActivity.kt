@@ -89,7 +89,7 @@ private fun RageShieldHome(
     fun refreshListStatus(error: String? = null) {
         val t = FilterListRepository.lastUpdated(context)
         val updated = if (t > 0L) "Updated " + DateFormat.getDateTimeInstance().format(Date(t)) else "Not downloaded yet"
-        listStatus = "${FilterListRepository.keywords.size} words total, ${FilterListRepository.communityCount} from community. $updated" +
+        listStatus = "${FilterListRepository.keywords.size} words total, ${FilterListRepository.communityCount} from the keyword file. $updated" +
             (if (error != null) "\nUpdate failed: $error" else "")
     }
 
@@ -132,10 +132,10 @@ private fun RageShieldHome(
 
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Community filter list")
+                Text("Filter list")
                 Text(listStatus, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    "Add your own words by editing keywords.txt in the RageShield-FilterList repository on GitHub.",
+                    "Add words by editing app/src/main/assets/keywords.txt in the RageShield repository on GitHub.",
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedButton(

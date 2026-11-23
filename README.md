@@ -31,6 +31,19 @@ Messaging apps (WhatsApp, Telegram DMs, etc.) are intentionally not supported, s
 2. Register it in `PlatformRegistry`.
 3. Add the package to `android:packageNames` in `res/xml/rageshield_accessibility_service.xml`.
 
+## Filter list
+The words RageShield looks for live in one plain-text file: [`app/src/main/assets/keywords.txt`](app/src/main/assets/keywords.txt).
+It is bundled in the app and the app also refreshes it from GitHub, so a merged change reaches users without an app update.
+
+**Add a word (no coding needed):**
+1. Open `keywords.txt` on GitHub and click the pencil icon (**Edit this file**).
+2. Add your word or phrase on a new line under the right language heading.
+3. Commit and choose **Create a pull request**. A check flags duplicates and badly formatted lines.
+
+Rules: one entry per line, lowercase, 2 to 60 characters, any language or script, `#` starts a comment.
+English entries match whole words; entries in other scripts and hashtags match anywhere in the text.
+Very common words cause false skips. Check locally with `python3 scripts/validate_keywords.py`.
+
 ## Architecture
 RageShield consists of two primary components:
 1. **Android Application:** Uses an `AccessibilityService` and a modular `PlatformAdapter` system to detect content and perform skip actions safely.

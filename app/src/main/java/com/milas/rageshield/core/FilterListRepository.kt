@@ -6,8 +6,8 @@ import java.net.URL
 import java.util.concurrent.Executors
 
 /**
- * Community keyword list. Downloads keywords.txt from the filter-list repository,
- * caches it on the device and merges it with the built-in words.
+ * Keyword list. Combines the built-in words, the list bundled in the app and the newest
+ * copy downloaded from this repository's keywords.txt (cached on the device).
  *
  * Only the list is downloaded. Nothing about what the user reads is ever uploaded.
  */
@@ -15,7 +15,10 @@ object FilterListRepository {
 
     /** Change this if the filter list repository moves. */
     const val LIST_URL =
-        "https://raw.githubusercontent.com/Killersparrow1/RageShield-FilterList/main/keywords.txt"
+        "https://raw.githubusercontent.com/Killersparrow1/RageShield/main/app/src/main/assets/keywords.txt"
+
+    /** Bundled copy shipped inside the app (app/src/main/assets/keywords.txt). */
+    private const val ASSET_NAME = "keywords.txt"
 
     private const val PREFS = "rageshield_filterlist"
     private const val KEY_TEXT = "list_text"
@@ -35,11 +38,23 @@ object FilterListRepository {
     var communityCount: Int = 0
         private set
 
+    @Volatile
+    private var bundled: Set<String> = emptySet()
+
+    @Volatile
+    private var cached: Set<String> = emptySet()
+
     /** Loads the cached list, then refreshes from the network if it is stale. */
     fun init(context: Context) {
         val app = context.applicationContext
         val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        prefs.getString(KEY_TEXT, null)?.let { apply(parse(it)) }
+        bundled = try {
+            app.assets.open(ASSET_NAME).bufferedReader(Charsets.UTF_8).use { parse(it.readText()) }
+        } catch (e: Exception) {
+            emptySet()
+        }
+        cached = prefs.getString(KEY_TEXT, null)?.let { parse(it) } ?: emptySet()
+        apply(bundled + cached)
         val age = System.currentTimeMillis() - prefs.getLong(KEY_FETCHED_AT, 0L)
         if (age > AUTO_REFRESH_MS) refresh(app) {}
     }
@@ -48,7 +63,7 @@ object FilterListRepository {
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getLong(KEY_FETCHED_AT, 0L)
 
-    /** Downloads the list in the background. [onDone] receives an error message or null. */
+    /** Downloads the newest list from GitHub in the background. [onDone] receives an error message or null. */
     fun refresh(context: Context, onDone: (error: String?) -> Unit) {
         val app = context.applicationContext
         executor.execute {
@@ -62,7 +77,8 @@ object FilterListRepository {
                         .putString(KEY_TEXT, text)
                         .putLong(KEY_FETCHED_AT, System.currentTimeMillis())
                         .apply()
-                    apply(parsed)
+                    cached = parsed
+                    apply(bundled + parsed)
                     null
                 }
             } catch (e: Exception) {
