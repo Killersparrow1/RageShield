@@ -14,8 +14,20 @@ android {
         applicationId = "com.milas.rageshield"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        // CI run number keeps increasing, so each new build installs as an update.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionName = "0.1.0"
+    }
+
+    // One permanent key for every build, so new APKs install over the old one
+    // (no uninstall needed). This is a debug-grade key kept in the repo on purpose.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("rageshield-debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildFeatures {
