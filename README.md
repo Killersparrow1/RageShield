@@ -74,6 +74,6 @@ The repository includes `.github/workflows/android-ci.yml`.
 4. Open the **Android CI** workflow and wait for it to finish.
 5. Open the successful workflow run and download the `RageShield-debug-<commit>` artifact.
 
-The workflow uses JDK 17, Android SDK setup, and Gradle 8.13. It compiles `assembleDebug` and uploads the APK as a 14-day artifact. It does not require signing secrets because this is a debug build.
+The workflow uses JDK 17, `android-actions/setup-android@v4` (which avoids the discontinued `tools` SDK package), Android Platform 36, Build Tools 36.0.0, and Gradle 8.13. It compiles `assembleDebug` and uploads the APK as a 14-day artifact. It does not require signing secrets because this is a debug build.
 
 For a first public repository, review the README, license, accessibility-service disclosure, and privacy behaviour before publishing. Do not commit signing keys, passwords, or other secrets.

@@ -3,25 +3,43 @@ package com.milas.rageshield.accessibility
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
-import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
-import java.lang.ref.WeakReference
+import com.milas.rageshield.core.DecisionEngine
+import com.milas.rageshield.core.PlatformRegistry
+import com.milas.rageshield.core.RageDetectionEngine
 
 class RageAccessibilityService : AccessibilityService() {
-
-    override fun onServiceConnected() {
-        super.onServiceConnected()
-        instance = WeakReference(this)
-    }
+    // ... (existing members)
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
         val packageName = event.packageName?.toString() ?: return
-        if (packageName == FACEBOOK_PACKAGE) {
-            getSharedPreferences(PREFS, MODE_PRIVATE).edit()
-                .putLong(KEY_LAST_FACEBOOK_EVENT, System.currentTimeMillis())
-                .putString(KEY_LAST_PACKAGE, packageName)
-                .apply()
+        
+        val adapter = PlatformRegistry.getAdapterForPackage(packageName) ?: return
+        
+        // Use the event's source node (if available) to extract content
+        val rootNode = event.source ?: return
+        val content = adapter.extractContent(rootNode) ?: return
+        
+        processContent(content, packageName)
+    }
+
+    // Example of how the DecisionEngine integrates into the event flow
+    private fun processContent(text: String, packageName: String) {
+        val localDetection = RageDetectionEngine.analyze(text)
+        
+        // TODO: Query community database for hash match (Phase 4)
+        val communityMatch = false 
+        
+        val decision = DecisionEngine.decide(
+            text, 
+            communityMatch, 
+            localDetection.score
+        )
+        
+        if (decision == DecisionEngine.Decision.SKIP) {
+            // Perform action (e.g., scroll away)
+            performTestSwipe()
         }
     }
 
@@ -50,9 +68,8 @@ class RageAccessibilityService : AccessibilityService() {
     }
 
     companion object {
-        const val FACEBOOK_PACKAGE = "com.facebook.katana"
         private const val PREFS = "rageshield_status"
-        const val KEY_LAST_FACEBOOK_EVENT = "last_facebook_event"
+        const val KEY_LAST_EVENT = "last_event"
         const val KEY_LAST_PACKAGE = "last_package"
 
         @Volatile
