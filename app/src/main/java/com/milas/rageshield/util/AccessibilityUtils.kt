@@ -29,4 +29,28 @@ object AccessibilityUtils {
         }
         return null
     }
+
+    /**
+     * Collects all non-blank text in the node tree, in traversal order.
+     * Capped by [maxNodes] so a huge hierarchy cannot stall the service.
+     */
+    fun collectText(root: AccessibilityNodeInfo?, maxNodes: Int = 300): List<String> {
+        if (root == null) return emptyList()
+        val out = ArrayList<String>()
+        var visited = 0
+
+        fun walk(node: AccessibilityNodeInfo?) {
+            if (node == null || visited >= maxNodes) return
+            visited++
+            val text = node.text
+            if (!text.isNullOrBlank()) out.add(text.toString().trim())
+            for (i in 0 until node.childCount) {
+                if (visited >= maxNodes) return
+                walk(node.getChild(i))
+            }
+        }
+
+        walk(root)
+        return out
+    }
 }

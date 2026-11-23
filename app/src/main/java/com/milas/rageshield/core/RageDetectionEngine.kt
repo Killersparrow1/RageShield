@@ -24,12 +24,12 @@ object RageDetectionEngine {
     )
 
     fun analyze(content: String): DetectionResult {
-        val words = content.lowercase().split(Regex("\\s+"))
+        val lowered = content.lowercase()
         val language = Locale.getDefault().language
         
         var matchCount = 0
         RAGE_KEYWORDS.forEach { keyword ->
-            if (content.contains(keyword)) matchCount++
+            if (lowered.contains(keyword)) matchCount++
         }
 
         // Simple heuristic: scale match count to a score out of 100

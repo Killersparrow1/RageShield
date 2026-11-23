@@ -64,6 +64,8 @@ private fun RageShieldHome(
     var serviceEnabled by remember { mutableStateOf(isServiceEnabled(context)) }
     var facebookSeen by remember { mutableStateOf(false) }
     var lastSeenText by remember { mutableStateOf("No Facebook event detected yet") }
+    var instagramSeen by remember { mutableStateOf(false) }
+    var instagramSeenText by remember { mutableStateOf("No Instagram event detected yet") }
     var result by remember { mutableStateOf("Test swipe has not been run") }
     var testModeAcknowledged by remember { mutableStateOf(false) }
 
@@ -76,6 +78,14 @@ private fun RageShieldHome(
             "Last Facebook event: " + DateFormat.getTimeInstance(DateFormat.MEDIUM).format(Date(timestamp))
         } else {
             "No Facebook event detected yet"
+        }
+
+        val igTimestamp = prefs.getLong(RageAccessibilityService.KEY_LAST_INSTAGRAM_EVENT, 0L)
+        instagramSeen = igTimestamp > 0L && System.currentTimeMillis() - igTimestamp < 15_000L
+        instagramSeenText = if (igTimestamp > 0L) {
+            "Last Instagram event: " + DateFormat.getTimeInstance(DateFormat.MEDIUM).format(Date(igTimestamp))
+        } else {
+            "No Instagram event detected yet"
         }
     }
 
@@ -105,6 +115,14 @@ private fun RageShieldHome(
                 Text("Facebook detection")
                 Text(if (facebookSeen) "Facebook activity detected recently" else "Waiting for Facebook activity")
                 Text(lastSeenText, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Instagram detection")
+                Text(if (instagramSeen) "Instagram activity detected recently" else "Waiting for Instagram activity")
+                Text(instagramSeenText, style = MaterialTheme.typography.bodySmall)
             }
         }
 

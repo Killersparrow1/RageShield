@@ -10,7 +10,21 @@ class InstagramAdapter : PlatformAdapter {
     override val platformName = "Instagram"
     override val isStable = false
 
-    override fun extractContent(rootNode: AccessibilityNodeInfo): String? = AccessibilityUtils.findText(rootNode)
+    /**
+     * Instagram's first text node is usually a username or tab label, so gather all
+     * visible text and keep caption-like strings (multi-word, not tiny UI labels).
+     * View IDs are deliberately not used because Instagram changes them often.
+     */
+    override fun extractContent(rootNode: AccessibilityNodeInfo): String? {
+        val captionLike = AccessibilityUtils.collectText(rootNode)
+            .filter { it.length >= 12 && it.contains(' ') }
+        if (captionLike.isEmpty()) return null
+        return captionLike.joinToString(" ").take(MAX_CHARS)
+    }
+
+    private companion object {
+        const val MAX_CHARS = 2000
+    }
 }
 
 class YoutubeAdapter : PlatformAdapter {
